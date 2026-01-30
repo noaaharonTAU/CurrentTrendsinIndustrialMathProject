@@ -1,5 +1,5 @@
-
-  "nodes": [
+{
+"nodes": [
     "ses",
     "drg",
     "alc",
@@ -140,4 +140,5 @@
   "evidence": ["gen","alc","drg","outat","exlvl","ses"],
   "evidence_card": [2,3,3,2,2,3]
   }
+}
 }
