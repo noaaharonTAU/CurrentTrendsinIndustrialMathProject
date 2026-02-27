@@ -1,0 +1,8 @@
+# Current Trends in Industrial Math Project — Bayesian network pruning
+# Install: pip install -r requirements.txt
+
+pgmpy>=0.1.19
+numpy>=1.20
+pandas>=1.3
+scikit-learn>=1.0
+matplotlib>=3.4
