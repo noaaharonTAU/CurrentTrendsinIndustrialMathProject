@@ -7,20 +7,15 @@ Compare pruning methods (Wavelet L2, BIC, AIC, BDs, CSI) on the ALARM benchmark 
 1. **Clone the repository** (in a Colab code cell):
 
 ```python
-!git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
-%cd YOUR_REPO_NAME
+!git clone https://github.com/noaaharonTAU/CurrentTrendsinIndustrialMathProject.git
+%cd CurrentTrendsinIndustrialMathProject
 ```
-
-Replace `YOUR_USERNAME` and `YOUR_REPO_NAME` with your GitHub username and repo name. If the project lives in a subfolder (e.g. `bayesian_pruning_project` is inside the repo), then after cloning use:
-`%cd YOUR_REPO_NAME` so that the **parent** of `bayesian_pruning_project` is the current directory.
 
 2. **Install dependencies**:
 
 ```python
-!pip install -r bayesian_pruning_project/requirements.txt
+!pip install -r requirements.txt
 ```
-
-(If the project is at the repo root, use `!pip install -r requirements.txt`.)
 
 3. **Run experiments**:
 
@@ -39,12 +34,6 @@ Replace `YOUR_USERNAME` and `YOUR_REPO_NAME` with your GitHub username and repo 
 !python -m bayesian_pruning_project.main --both
 ```
 
-If your config file is elsewhere, pass it explicitly:
-
-```python
-!python -m bayesian_pruning_project.main --synthetic --config /path/to/bayesian_config.json
-```
-
 4. **View results**
    - The **comparison table** is printed in the cell output.
    - **Plots** are saved as `alarm_pruning_progress.png` and/or `synthetic_pruning_progress.png` in the current directory. To show them in the notebook:
@@ -54,10 +43,6 @@ from IPython.display import Image, display
 display(Image("alarm_pruning_progress.png"))
 # display(Image("synthetic_pruning_progress.png"))
 ```
-
-   - You can also download the images from the Colab file browser (folder icon on the left).
-
-**Tip:** For synthetic experiments, upload `bayesian_config.json` to Colab (e.g. drag-and-drop into the file browser) and run with `--config bayesian_config.json` if you put it in the working directory.
 
 ---
 
