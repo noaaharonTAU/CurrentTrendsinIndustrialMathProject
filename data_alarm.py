@@ -46,6 +46,17 @@ def load_alarm_data():
             evaluate_alarm_data[col] = evaluate_alarm_data[col].astype(cat_type).cat.codes
 
     target_var = getattr(config_module, "ALARM_TARGET_VAR", "CATECHOL")
-    interventions = getattr(config_module, "ALARM_INTERVENTIONS", [])
+    interventions = getattr(config_module, "ALARM_INTERVENTIONS", None)
+    if interventions is None:
+        intervention_nodes = getattr(config_module, "ALARM_INTERVENTION_NODES", [])
+        interventions = []
+        for node in intervention_nodes:
+            if node not in true_alarm_model.nodes():
+                continue
+            cpd = true_alarm_model.get_cpds(node)
+            if cpd is None:
+                continue
+            for state in range(cpd.variable_card):
+                interventions.append({node: state})
 
     return true_alarm_model, alarm_model, train_alarm_data, evaluate_alarm_data, target_var, interventions
