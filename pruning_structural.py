@@ -212,7 +212,7 @@ def structural_error_pruning(
         step_extra = row_extra(true_model, pruned_model)
         history.append({
             "step": step,
-            "edge": best_edge,
+            "removed_edges": best_edge,
             "num_edges": len(pruned_model.edges()),
             "score_name": "Structural Error",
             "score": best_kl,
