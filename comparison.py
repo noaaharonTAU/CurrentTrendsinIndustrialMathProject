@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-DEFAULT_METHOD_ORDER = ("Wavelet", "BIC", "AIC", "BDs", "CSI") = ("Wavelet", "BIC", "AIC", "BDs", "CSI")
+DEFAULT_METHOD_ORDER = ("Wavelet", "BIC", "AIC", "BDs", "CSI")
 
 PROGRESS_METRICS = (
     ("num_edges", "Number of edges", "lower"),
