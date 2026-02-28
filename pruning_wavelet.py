@@ -224,5 +224,10 @@ def pruning_l2_wavelet(
             **step_extra,
         })
 
-    print("\nFinal pruned edges:", list(pruned_model.edges()))
+
+    print("\nPruning history:")
+    import pandas as pd
+    print(pd.DataFrame(history).to_string())
+    print("\nFinal model edges:")
+    print(list(pruned_model.edges()))
     return pruned_model, history
