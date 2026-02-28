@@ -217,7 +217,7 @@ def pruning_l2_wavelet(
         step_extra = row_extra(true_model, pruned_model)
         history.append({
             "step": step,
-            "edge": edges_to_remove,
+            "removed_edges": edges_to_remove,
             "num_edges": len(pruned_model.edges()),
             "score_name": "wavelet_l2",
             "score": mean_wavelet_l2,
