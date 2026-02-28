@@ -219,8 +219,9 @@ def structural_error_pruning(
             **step_extra,
         })
 
-    print("\nFinal remaining edges:")
+    print("\nPruning history:")
+    import pandas as pd
+    print(pd.DataFrame(history).to_string())
+    print("\nFinal model edges:")
     print(list(pruned_model.edges()))
-    print("\nAll pruned edges:")
-    print(all_pruned_edges)
     return pruned_model, history
