@@ -8,14 +8,18 @@ At the end shows the comparison table and progress plots.
 import argparse
 import sys
 import os
+import importlib
 
-# Allow running as script from repo root or from package dir
+# When run as a script (e.g. python main.py from the project folder), the "package"
+# is the folder that contains main.py — e.g. CurrentTrendsinIndustrialMathProject on Colab
+# or bayesian_pruning_project locally. We add the parent of that folder to sys.path
+# and set __package__ to the folder name so imports work no matter what the folder is called.
 if __name__ == "__main__" and __package__ is None:
-    _dir = os.path.dirname(os.path.abspath(__file__))
-    _parent = os.path.dirname(_dir)
+    _script_dir = os.path.dirname(os.path.abspath(__file__))
+    _parent = os.path.dirname(_script_dir)
     if _parent not in sys.path:
         sys.path.insert(0, _parent)
-    __package__ = "bayesian_pruning_project"
+    __package__ = os.path.basename(_script_dir)
 
 try:
     from . import config as config_module
@@ -26,13 +30,16 @@ try:
     from .pruning_structural import structural_error_pruning
     from .comparison import run_and_print_comparison, plot_pruning_progress
 except ImportError:
-    from bayesian_pruning_project import config as config_module
-    from bayesian_pruning_project.data_alarm import load_alarm_data
-    from bayesian_pruning_project.data_synthetic import load_synthetic_from_config
-    from bayesian_pruning_project.pruning_wavelet import pruning_l2_wavelet
-    from bayesian_pruning_project.pruning_score import score_pruning
-    from bayesian_pruning_project.pruning_structural import structural_error_pruning
-    from bayesian_pruning_project.comparison import run_and_print_comparison, plot_pruning_progress
+    # Fallback when relative imports fail: import by package name (the folder name).
+    _pkg = __package__ or os.path.basename(os.path.dirname(os.path.abspath(__file__)))
+    config_module = importlib.import_module(_pkg + ".config")
+    load_alarm_data = getattr(importlib.import_module(_pkg + ".data_alarm"), "load_alarm_data")
+    load_synthetic_from_config = getattr(importlib.import_module(_pkg + ".data_synthetic"), "load_synthetic_from_config")
+    pruning_l2_wavelet = getattr(importlib.import_module(_pkg + ".pruning_wavelet"), "pruning_l2_wavelet")
+    score_pruning = getattr(importlib.import_module(_pkg + ".pruning_score"), "score_pruning")
+    structural_error_pruning = getattr(importlib.import_module(_pkg + ".pruning_structural"), "structural_error_pruning")
+    run_and_print_comparison = getattr(importlib.import_module(_pkg + ".comparison"), "run_and_print_comparison")
+    plot_pruning_progress = getattr(importlib.import_module(_pkg + ".comparison"), "plot_pruning_progress")
 
 
 def run_alarm():
