@@ -12,8 +12,12 @@ CONFIG_PATH = "bayesian_config.json"
 
 # Alarm: target variable for prediction accuracy; interventions for interventional KL
 ALARM_TARGET_VAR = "CATECHOL"
-# List of intervention dicts, e.g. [{"VAR": 0}, {"VAR": 1}]. Empty to skip interventional metrics.
-ALARM_INTERVENTIONS = []  # e.g. [{"CATECHOL": 0}, {"CATECHOL": 1}]
+# List of intervention dicts, e.g. [{"VAR": 0}, {"VAR": 1}]. 
+ALARM_INTERVENTIONS = []
+for node in ["INTUBATION", "VENTMACH", "MINVOLSET"]:
+    cpd = true_alarm_model.get_cpds(node)
+    for state in range(cpd.variable_card):
+        ALARM_INTERVENTIONS.append({node: state})
 
 # Synthetic: target variable (must exist in synthetic model)
 SYNTHETIC_TARGET_VAR = None  # e.g. "dep"
