@@ -7,6 +7,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+import logging
+   logging.getLogger("pgmpy").setLevel(logging.ERROR)
+
 DEFAULT_METHOD_ORDER = ("Wavelet", "BIC", "AIC", "BDs", "CSI")
 
 PROGRESS_METRICS = (
