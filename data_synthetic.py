@@ -15,9 +15,10 @@ from . import config as config_module
 from .helpers import add_gaussian_index_noise, _refit_model
 
 
-def load_synthetic_from_config(config_path: str = None):
+def load_synthetic_from_config(config_path: str = None, seed=None):
     """
     Load synthetic model from JSON config, generate train/eval data.
+    If seed is None, uses config RANDOM_STATE; else uses the given seed (for repeat runs).
     Returns:
         true_synthetic_model, synthetic_model (same as true if no structure learning),
         train_synthetic_data, evaluate_synthetic_data, target_var, interventions
@@ -43,7 +44,8 @@ def load_synthetic_from_config(config_path: str = None):
 
     size = getattr(config_module, "SYNTHETIC_SAMPLE_SIZE", 4000)
     ratio = getattr(config_module, "SYNTHETIC_TRAIN_RATIO", 0.7)
-    seed = getattr(config_module, "RANDOM_STATE", 42)
+    if seed is None:
+        seed = getattr(config_module, "RANDOM_STATE", 42)
 
     sampler = BayesianModelSampling(true_synthetic_model)
     synthetic_data = sampler.forward_sample(size=size)
