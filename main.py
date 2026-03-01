@@ -9,6 +9,10 @@ import argparse
 import sys
 import os
 import importlib
+import io
+import contextlib
+import numpy as np
+import pandas as pd
 
 # When run as a script (e.g. python main.py from the project folder), the "package"
 # is the folder that contains main.py — e.g. CurrentTrendsinIndustrialMathProject on Colab
@@ -21,6 +25,10 @@ if __name__ == "__main__" and __package__ is None:
         sys.path.insert(0, _parent)
     __package__ = os.path.basename(_script_dir)
 
+# Suppress pgmpy INFO/WARNING (e.g. "Probability values don't sum to 1", "Datatype inferred")
+import logging
+logging.getLogger("pgmpy").setLevel(logging.ERROR)
+
 try:
     from . import config as config_module
     from .data_alarm import load_alarm_data
@@ -28,7 +36,12 @@ try:
     from .pruning_wavelet import pruning_l2_wavelet
     from .pruning_score import score_pruning
     from .pruning_structural import structural_error_pruning
-    from .comparison import run_and_print_comparison, plot_pruning_progress
+    from .comparison import (
+        run_and_print_comparison,
+        plot_pruning_progress,
+        build_comparison_from_last_step,
+        print_comparison,
+    )
 except ImportError:
     # Fallback when relative imports fail: import by package name (the folder name).
     _pkg = __package__ or os.path.basename(os.path.dirname(os.path.abspath(__file__)))
@@ -40,10 +53,130 @@ except ImportError:
     structural_error_pruning = getattr(importlib.import_module(_pkg + ".pruning_structural"), "structural_error_pruning")
     run_and_print_comparison = getattr(importlib.import_module(_pkg + ".comparison"), "run_and_print_comparison")
     plot_pruning_progress = getattr(importlib.import_module(_pkg + ".comparison"), "plot_pruning_progress")
+    build_comparison_from_last_step = getattr(importlib.import_module(_pkg + ".comparison"), "build_comparison_from_last_step")
+    print_comparison = getattr(importlib.import_module(_pkg + ".comparison"), "print_comparison")
+
+
+    print_comparison = getattr(importlib.import_module(_pkg + ".comparison"), "print_comparison")
+
+
+def _run_alarm_once(seed=None):
+    """Run one full ALARM pipeline; returns (histories_dict, comparison_df). Suppresses stdout."""
+    with contextlib.redirect_stdout(io.StringIO()):
+        true_model, pruned_model, train_data, eval_data, target_var, interventions = load_alarm_data(seed=seed)
+        wavelet_model, wavelet_history = pruning_l2_wavelet(
+            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
+            target_var=target_var, interventions=interventions,
+        )
+        BIC_model, BIC_history = score_pruning(
+            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
+            score_fn="bic-d", target_var=target_var, interventions=interventions,
+        )
+        AIC_model, AIC_history = score_pruning(
+            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
+            score_fn="aic-d", target_var=target_var, interventions=interventions,
+        )
+        BDs_model, BDs_history = score_pruning(
+            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
+            score_fn="bds", target_var=target_var, interventions=interventions,
+        )
+        csi_model, csi_history = structural_error_pruning(
+            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
+            target_var=target_var, interventions=interventions,
+        )
+        histories = {
+            "Wavelet": wavelet_history,
+            "BIC": BIC_history,
+            "AIC": AIC_history,
+            "BDs": BDs_history,
+            "CSI": csi_history,
+        }
+        df = build_comparison_from_last_step(histories)
+    return histories, df
+
+
+def _run_synthetic_once(config_path=None, seed=None):
+    """Run one full synthetic pipeline; returns (histories_dict, comparison_df). Suppresses stdout."""
+    with contextlib.redirect_stdout(io.StringIO()):
+        true_model, pruned_model, train_data, eval_data, target_var, interventions = load_synthetic_from_config(
+            config_path=config_path, seed=seed
+        )
+        wavelet_model, wavelet_history = pruning_l2_wavelet(
+            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
+            target_var=target_var, interventions=interventions,
+        )
+        BIC_model, BIC_history = score_pruning(
+            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
+            score_fn="bic-d", target_var=target_var, interventions=interventions,
+        )
+        AIC_model, AIC_history = score_pruning(
+            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
+            score_fn="aic-d", target_var=target_var, interventions=interventions,
+        )
+        BDs_model, BDs_history = score_pruning(
+            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
+            score_fn="bds", target_var=target_var, interventions=interventions,
+        )
+        csi_model, csi_history = structural_error_pruning(
+            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
+            target_var=target_var, interventions=interventions,
+        )
+        histories = {
+            "Wavelet": wavelet_history,
+            "BIC": BIC_history,
+            "AIC": AIC_history,
+            "BDs": BDs_history,
+            "CSI": csi_history,
+        }
+        df = build_comparison_from_last_step(histories)
+    return histories, df
+
+
+def _aggregate_histories(list_of_histories_dicts):
+    """Average metrics across runs per (method, step). Steps aligned by step number."""
+    method_order = ("Wavelet", "BIC", "AIC", "BDs", "CSI")
+    metric_cols = ["num_edges", "ll_score", "kl_score", "structure_score", "pred_accuracy", "collider_recall", "global_ace_diff", "interventional_kl_mean", "score"]
+    aggregated = {}
+    for method in method_order:
+        all_rows = []
+        for run_histories in list_of_histories_dicts:
+            if method not in run_histories:
+                continue
+            for rec in run_histories[method]:
+                step = rec.get("step")
+                if step is None:
+                    continue
+                row = {"step": step}
+                for k in metric_cols:
+                    if k in rec and rec[k] is not None:
+                        try:
+                            row[k] = float(rec[k])
+                        except (TypeError, ValueError):
+                            pass
+                all_rows.append(row)
+        if not all_rows:
+            continue
+        df_run = pd.DataFrame(all_rows)
+        by_step = df_run.groupby("step", as_index=False).mean()
+        aggregated[method] = by_step.to_dict("records")
+    return aggregated
+
+
+def _aggregate_comparison_dfs(list_of_dfs):
+    """Mean and std per method per metric across dataframes. Returns (df_mean, df_std)."""
+    if not list_of_dfs:
+        return pd.DataFrame(), pd.DataFrame()
+    concat = pd.concat(list_of_dfs, ignore_index=True)
+    method_col = "method"
+    numeric_cols = [c for c in concat.columns if c != method_col and pd.api.types.is_numeric_dtype(concat[c])]
+    if not numeric_cols:
+        return concat.groupby(method_col, as_index=False).first(), pd.DataFrame()
+    mean_df = concat.groupby(method_col, as_index=False)[numeric_cols].mean()
+    std_df = concat.groupby(method_col, as_index=False)[numeric_cols].std()
+    return mean_df, std_df
 
 
 def run_alarm():
-    print("\n" + "=" * 60 + "\n  ALARM MODEL\n" + "=" * 60)
     true_model, pruned_model, train_data, eval_data, target_var, interventions = load_alarm_data()
 
     wavelet_model, wavelet_history = pruning_l2_wavelet(
@@ -117,7 +250,6 @@ def run_alarm():
 
 
 def run_synthetic(config_path=None):
-    print("\n" + "=" * 60 + "\n  SYNTHETIC MODEL\n" + "=" * 60)
     true_model, pruned_model, train_data, eval_data, target_var, interventions = load_synthetic_from_config(config_path)
 
     wavelet_model, wavelet_history = pruning_l2_wavelet(
@@ -196,6 +328,7 @@ def main():
     parser.add_argument("--synthetic", action="store_true", help="Run experiments on synthetic model only")
     parser.add_argument("--both", action="store_true", help="Run both ALARM and synthetic")
     parser.add_argument("--config", default=None, help="Path to synthetic bayesian_config.json (default: config.CONFIG_PATH)")
+    parser.add_argument("--runs", type=int, default=1, metavar="N", help="Run pipeline N times and report averaged results (default: 1)")
     args = parser.parse_args()
 
     if args.both:
@@ -203,6 +336,67 @@ def main():
         args.synthetic = True
     if not args.alarm and not args.synthetic:
         parser.error("Specify at least one of: --alarm, --synthetic, --both")
+
+    base_seed = getattr(config_module, "RANDOM_STATE", 42)
+
+    if args.runs > 1:
+        if args.alarm:
+            n = args.runs
+            print("Running ALARM pipeline {} times (seeds {}..{})...".format(n, base_seed, base_seed + n - 1))
+            all_histories, all_dfs = [], []
+            for i in range(n):
+                print("  Run {}/{}...".format(i + 1, n))
+                hist, df = _run_alarm_once(seed=base_seed + i)
+                all_histories.append(hist)
+                all_dfs.append(df)
+            mean_df, std_df = _aggregate_comparison_dfs(all_dfs)
+            print("\n--- Averaged comparison (mean over {} runs) ---".format(n))
+            print_comparison(mean_df, mark_best=True)
+            if not std_df.empty:
+                print("\n--- Std over {} runs ---".format(n))
+                print(std_df.round(4).to_string(index=False))
+            agg_hist = _aggregate_histories(all_histories)
+            fig, _ = plot_pruning_progress(agg_hist)
+            if fig is not None:
+                fig.suptitle("ALARM — Pruning progress (mean over {} runs)".format(n), fontsize=12)
+                fig.savefig("alarm_pruning_progress.png", dpi=150, bbox_inches="tight")
+                print("\nPlot saved to alarm_pruning_progress.png")
+                try:
+                    import matplotlib.pyplot as plt
+                    plt.show()
+                except Exception:
+                    pass
+        if args.synthetic:
+            config_path = args.config or getattr(config_module, "CONFIG_PATH", "bayesian_config.json")
+            if not os.path.isfile(config_path):
+                print("[WARN] Synthetic config not found: {}".format(config_path))
+            else:
+                n = args.runs
+                print("Running synthetic pipeline {} times (seeds {}..{})...".format(n, base_seed, base_seed + n - 1))
+                all_histories, all_dfs = [], []
+                for i in range(n):
+                    print("  Run {}/{}...".format(i + 1, n))
+                    hist, df = _run_synthetic_once(config_path=config_path, seed=base_seed + i)
+                    all_histories.append(hist)
+                    all_dfs.append(df)
+                mean_df, std_df = _aggregate_comparison_dfs(all_dfs)
+                print("\n--- Averaged comparison (mean over {} runs) ---".format(n))
+                print_comparison(mean_df, mark_best=True)
+                if not std_df.empty:
+                    print("\n--- Std over {} runs ---".format(n))
+                    print(std_df.round(4).to_string(index=False))
+                agg_hist = _aggregate_histories(all_histories)
+                fig, _ = plot_pruning_progress(agg_hist)
+                if fig is not None:
+                    fig.suptitle("Synthetic — Pruning progress (mean over {} runs)".format(n), fontsize=12)
+                    fig.savefig("synthetic_pruning_progress.png", dpi=150, bbox_inches="tight")
+                    print("\nPlot saved to synthetic_pruning_progress.png")
+                    try:
+                        import matplotlib.pyplot as plt
+                        plt.show()
+                    except Exception:
+                        pass
+        return
 
     if args.alarm:
         run_alarm()
