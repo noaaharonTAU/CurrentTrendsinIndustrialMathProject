@@ -7,8 +7,15 @@ Compare pruning methods (Wavelet L2, BIC, AIC, BDs, CSI) on the ALARM benchmark 
 1. **Clone the repository** (in a Colab code cell):
 
 ```python
-!git clone https://github.com/noaaharonTAU/CurrentTrendsinIndustrialMathProject.git
-%cd CurrentTrendsinIndustrialMathProject
+!git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+%cd YOUR_REPO_NAME
+```
+
+Replace `YOUR_USERNAME` and `YOUR_REPO_NAME` with your GitHub username and repo name.  
+If the code is in a subfolder (e.g. `bayesian_pruning_project`), go into it:
+
+```python
+%cd bayesian_pruning_project
 ```
 
 2. **Install dependencies**:
@@ -34,6 +41,20 @@ Compare pruning methods (Wavelet L2, BIC, AIC, BDs, CSI) on the ALARM benchmark 
 !python main.py --both
 ```
 
+Run **5 times** and report **averaged** comparison table and plots (more robust):
+
+```python
+!python main.py --alarm --runs 5
+# or
+!python main.py --both --runs 5
+```
+
+If your config file is elsewhere:
+
+```python
+!python main.py --synthetic --config /path/to/bayesian_config.json
+```
+
 4. **View results**
    - The **comparison table** is printed in the cell output.
    - **Plots** are saved as `alarm_pruning_progress.png` and/or `synthetic_pruning_progress.png`. To show them in the notebook:
@@ -43,6 +64,10 @@ from IPython.display import Image, display
 display(Image("alarm_pruning_progress.png"))
 # display(Image("synthetic_pruning_progress.png"))
 ```
+
+   - You can also download the images from the Colab file browser (folder icon on the left).
+
+**Tip:** For synthetic experiments, upload `bayesian_config.json` to Colab (e.g. drag-and-drop into the file browser) and run with `--config bayesian_config.json` if you put it in the current directory.
 
 ---
 
@@ -63,6 +88,13 @@ From **inside the project folder** (where `main.py` lives):
 python main.py --alarm
 python main.py --synthetic
 python main.py --both
+```
+
+Run **N times** and average results (e.g. 5 runs for more robust metrics and plots):
+
+```bash
+python main.py --alarm --runs 5
+python main.py --both --runs 5
 ```
 
 With a custom config path:
