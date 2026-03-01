@@ -13,10 +13,6 @@ from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import pandas as pd
 
-# When run as a script (e.g. python main.py from the project folder), the "package"
-# is the folder that contains main.py — e.g. CurrentTrendsinIndustrialMathProject on Colab
-# or bayesian_pruning_project locally. We add the parent of that folder to sys.path
-# and set __package__ to the folder name so imports work no matter what the folder is called.
 if __name__ == "__main__" and __package__ is None:
     _script_dir = os.path.dirname(os.path.abspath(__file__))
     _parent = os.path.dirname(_script_dir)
