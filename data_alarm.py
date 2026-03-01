@@ -10,9 +10,10 @@ from . import config as config_module
 from .helpers import _refit_model
 
 
-def load_alarm_data():
+def load_alarm_data(seed=None):
     """
     Load true ALARM model, generate train/eval data, and fit initial pruned_model (same structure, MLE on data).
+    If seed is None, uses config RANDOM_STATE; else uses the given seed (for repeat runs).
     Returns:
         true_alarm_model, alarm_model, train_alarm_data, evaluate_alarm_data, target_var, interventions
     """
@@ -21,7 +22,8 @@ def load_alarm_data():
     n_data = getattr(config_module, "ALARM_DATA_SAMPLES", 1000)
     n_train = getattr(config_module, "ALARM_TRAIN_SAMPLES", 2000)
     n_eval = getattr(config_module, "ALARM_EVAL_SAMPLES", 2000)
-    seed = getattr(config_module, "RANDOM_STATE", 42)
+    if seed is None:
+        seed = getattr(config_module, "RANDOM_STATE", 42)
 
     data = true_alarm_model.simulate(n_samples=n_data, show_progress=False, seed=seed)
     train_alarm_data = true_alarm_model.simulate(n_samples=n_train, show_progress=False, seed=seed + 1)
