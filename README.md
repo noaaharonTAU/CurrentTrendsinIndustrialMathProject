@@ -43,8 +43,8 @@ Run **5 times** and report **averaged** comparison table and plots. Runs are exe
 ```
 
 4. **View results**
-   - The **comparison table** is printed in the cell output.
-   - **Plots** are saved as `alarm_pruning_progress.png` and/or `synthetic_pruning_progress.png`. To show them in the notebook:
+- The **comparison table** is printed in the cell output.
+- **Plots** are saved as `alarm_pruning_progress.png` and/or `synthetic_pruning_progress.png`. To show them in the notebook:
 
 ```python
 from IPython.display import Image, display
