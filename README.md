@@ -34,7 +34,7 @@ Compare pruning methods (Wavelet L2, BIC, AIC, BDs, CSI) on the ALARM benchmark 
 !python main.py --both
 ```
 
-Run **5 times** and report **averaged** comparison table and plots:
+Run **5 times** and report **averaged** comparison table and plots. Runs are executed **in parallel** (up to 5 workers):
 
 ```python
 !python main.py --alarm --runs 5
