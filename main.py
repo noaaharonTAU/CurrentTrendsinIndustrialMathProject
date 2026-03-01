@@ -9,8 +9,7 @@ import argparse
 import sys
 import os
 import importlib
-import io
-import contextlib
+from concurrent.futures import ProcessPoolExecutor
 import numpy as np
 import pandas as pd
 
@@ -42,6 +41,7 @@ try:
         build_comparison_from_last_step,
         print_comparison,
     )
+    from .pipeline import run_alarm_worker, run_synthetic_worker
 except ImportError:
     # Fallback when relative imports fail: import by package name (the folder name).
     _pkg = __package__ or os.path.basename(os.path.dirname(os.path.abspath(__file__)))
@@ -55,81 +55,8 @@ except ImportError:
     plot_pruning_progress = getattr(importlib.import_module(_pkg + ".comparison"), "plot_pruning_progress")
     build_comparison_from_last_step = getattr(importlib.import_module(_pkg + ".comparison"), "build_comparison_from_last_step")
     print_comparison = getattr(importlib.import_module(_pkg + ".comparison"), "print_comparison")
-
-
-    print_comparison = getattr(importlib.import_module(_pkg + ".comparison"), "print_comparison")
-
-
-def _run_alarm_once(seed=None):
-    """Run one full ALARM pipeline; returns (histories_dict, comparison_df). Suppresses stdout."""
-    with contextlib.redirect_stdout(io.StringIO()):
-        true_model, pruned_model, train_data, eval_data, target_var, interventions = load_alarm_data(seed=seed)
-        wavelet_model, wavelet_history = pruning_l2_wavelet(
-            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
-            target_var=target_var, interventions=interventions,
-        )
-        BIC_model, BIC_history = score_pruning(
-            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
-            score_fn="bic-d", target_var=target_var, interventions=interventions,
-        )
-        AIC_model, AIC_history = score_pruning(
-            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
-            score_fn="aic-d", target_var=target_var, interventions=interventions,
-        )
-        BDs_model, BDs_history = score_pruning(
-            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
-            score_fn="bds", target_var=target_var, interventions=interventions,
-        )
-        csi_model, csi_history = structural_error_pruning(
-            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
-            target_var=target_var, interventions=interventions,
-        )
-        histories = {
-            "Wavelet": wavelet_history,
-            "BIC": BIC_history,
-            "AIC": AIC_history,
-            "BDs": BDs_history,
-            "CSI": csi_history,
-        }
-        df = build_comparison_from_last_step(histories)
-    return histories, df
-
-
-def _run_synthetic_once(config_path=None, seed=None):
-    """Run one full synthetic pipeline; returns (histories_dict, comparison_df). Suppresses stdout."""
-    with contextlib.redirect_stdout(io.StringIO()):
-        true_model, pruned_model, train_data, eval_data, target_var, interventions = load_synthetic_from_config(
-            config_path=config_path, seed=seed
-        )
-        wavelet_model, wavelet_history = pruning_l2_wavelet(
-            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
-            target_var=target_var, interventions=interventions,
-        )
-        BIC_model, BIC_history = score_pruning(
-            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
-            score_fn="bic-d", target_var=target_var, interventions=interventions,
-        )
-        AIC_model, AIC_history = score_pruning(
-            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
-            score_fn="aic-d", target_var=target_var, interventions=interventions,
-        )
-        BDs_model, BDs_history = score_pruning(
-            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
-            score_fn="bds", target_var=target_var, interventions=interventions,
-        )
-        csi_model, csi_history = structural_error_pruning(
-            true_model=true_model, pruned_model=pruned_model, data=train_data, evaluate_data=eval_data,
-            target_var=target_var, interventions=interventions,
-        )
-        histories = {
-            "Wavelet": wavelet_history,
-            "BIC": BIC_history,
-            "AIC": AIC_history,
-            "BDs": BDs_history,
-            "CSI": csi_history,
-        }
-        df = build_comparison_from_last_step(histories)
-    return histories, df
+    run_alarm_worker = getattr(importlib.import_module(_pkg + ".pipeline"), "run_alarm_worker")
+    run_synthetic_worker = getattr(importlib.import_module(_pkg + ".pipeline"), "run_synthetic_worker")
 
 
 def _aggregate_histories(list_of_histories_dicts):
@@ -340,15 +267,15 @@ def main():
     base_seed = getattr(config_module, "RANDOM_STATE", 42)
 
     if args.runs > 1:
+        n = args.runs
+        n_workers = min(n, os.cpu_count() or 4)
         if args.alarm:
-            n = args.runs
-            print("Running ALARM pipeline {} times (seeds {}..{})...".format(n, base_seed, base_seed + n - 1))
-            all_histories, all_dfs = [], []
-            for i in range(n):
-                print("  Run {}/{}...".format(i + 1, n))
-                hist, df = _run_alarm_once(seed=base_seed + i)
-                all_histories.append(hist)
-                all_dfs.append(df)
+            print("Running ALARM pipeline {} times in parallel ({} workers, seeds {}..{})...".format(
+                n, n_workers, base_seed, base_seed + n - 1))
+            with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                results = list(executor.map(run_alarm_worker, [base_seed + i for i in range(n)]))
+            all_histories = [r[0] for r in results]
+            all_dfs = [r[1] for r in results]
             mean_df, std_df = _aggregate_comparison_dfs(all_dfs)
             print("\n--- Averaged comparison (mean over {} runs) ---".format(n))
             print_comparison(mean_df, mark_best=True)
@@ -371,14 +298,15 @@ def main():
             if not os.path.isfile(config_path):
                 print("[WARN] Synthetic config not found: {}".format(config_path))
             else:
-                n = args.runs
-                print("Running synthetic pipeline {} times (seeds {}..{})...".format(n, base_seed, base_seed + n - 1))
-                all_histories, all_dfs = [], []
-                for i in range(n):
-                    print("  Run {}/{}...".format(i + 1, n))
-                    hist, df = _run_synthetic_once(config_path=config_path, seed=base_seed + i)
-                    all_histories.append(hist)
-                    all_dfs.append(df)
+                print("Running synthetic pipeline {} times in parallel ({} workers, seeds {}..{})...".format(
+                    n, n_workers, base_seed, base_seed + n - 1))
+                with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                    results = list(executor.map(
+                        run_synthetic_worker,
+                        [(config_path, base_seed + i) for i in range(n)],
+                    ))
+                all_histories = [r[0] for r in results]
+                all_dfs = [r[1] for r in results]
                 mean_df, std_df = _aggregate_comparison_dfs(all_dfs)
                 print("\n--- Averaged comparison (mean over {} runs) ---".format(n))
                 print_comparison(mean_df, mark_best=True)
