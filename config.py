@@ -31,7 +31,7 @@ ALARM_DATA_SAMPLES = 1000  # for fitting initial alarm_model
 
 # Structure learning (synthetic from noisy data)
 SYNTHETIC_NOISE_EPS = 0.2
-SYNTHETIC_STRUCTURE_SAMPLES = 10  # small for demo; increase for stability
+SYNTHETIC_STRUCTURE_SAMPLES = 100  
 
 # Random seeds
 RANDOM_STATE = 42
