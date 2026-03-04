@@ -4,14 +4,14 @@ Compare pruning methods (Wavelet L2, BIC, AIC, BDs, CSI) on the ALARM benchmark 
 
 ## Requirements
 
-- **Python 3.8 or 3.9+** (tested with 3.9 and 3.10). The dependencies in `requirements.txt` are not compatible with Python 3.7 or below.
+- **Python 3.9 or 3.10** (recommended). Avoid Python 3.7 or below (too old for current package versions) and **avoid very new Python** (e.g. 3.12 or 3.13): pgmpy and some of its dependencies (including optional PyTorch) often lag behind, so an older-but-stable version like 3.9 or 3.10 gives the fewest install issues.
 - Dependencies: `numpy`, `pandas`, `scipy`, `scikit-learn`, `pgmpy`, `networkx`, `matplotlib` (see `requirements.txt`).
 
 ---
 
 ## Option A: Run locally (terminal or PyCharm)
 
-Use this if you already have Python 3.8+ on your machine.
+Use this if you already have **Python 3.9 or 3.10** on your machine.
 
 ### 1. Clone the repository
 
@@ -30,7 +30,7 @@ source venv/bin/activate   # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-If you prefer not to use a venv, run `pip install -r requirements.txt` from the project folder (use `python3` and `pip3` if your system defaults to Python 2).
+If you prefer not to use a venv, run `pip install -r requirements.txt` from the project folder (use `python3` and `pip3` if your system defaults to Python 2). Ensure your Python version is 3.9 or 3.10.
 
 ### 3. Run from the terminal
 
@@ -53,7 +53,7 @@ python main.py --alarm --runs 5
 ### 4. Run from PyCharm
 
 1. **File → Open** and select the `CurrentTrendsinIndustrialMathProject` folder.
-2. Set the Python interpreter: **File → Settings → Project → Python Interpreter** → Add → Existing (point to your Python 3.8+ or to the project’s `venv/bin/python`).
+2. Set the Python interpreter: **File → Settings → Project → Python Interpreter** → Add → Existing (point to your **Python 3.9 or 3.10** or to the project’s `venv/bin/python`).
 3. Install dependencies: open the **Terminal** tab at the bottom and run `pip install -r requirements.txt`.
 4. Right‑click `main.py` → **Run 'main'**, or add **Run → Edit Configurations** and set script path to `main.py` and parameters to e.g. `--alarm` or `--both`.
 5. Alternatively, run the same commands as above in the PyCharm terminal: `python main.py --alarm`, etc.
@@ -64,7 +64,7 @@ For **synthetic** runs, ensure `bayesian_config.json` is in the project folder (
 
 ## Option B: Run on Google Colab
 
-Use this if you don’t have Python 3.8+ locally or prefer to run in the cloud. Colab provides a compatible Python environment.
+Use this if you don’t have Python 3.9 or 3.10 locally or prefer to run in the cloud. Colab lets you pick a **Python 3.9 or 3.10** runtime (Runtime → Change runtime type → Python version) so dependencies install cleanly.
 
 ### 1. Clone and go to the project folder
 
