@@ -1,6 +1,6 @@
 # Bayesian Network Pruning Project
 
-Compare pruning methods (Wavelet L2, BIC, AIC, BDs, CSI) on the ALARM benchmark and/or a synthetic Bayesian network. Outputs a comparison table and progress plots.
+Compares pruning methods (Wavelet L2, BIC, AIC, BDs, CSI) on the ALARM benchmark and/or a synthetic Bayesian network. Outputs a comparison table and progress plots.
 
 ## Requirements
 
@@ -22,7 +22,7 @@ git clone https://github.com/noaaharonTAU/CurrentTrendsinIndustrialMathProject.g
 cd CurrentTrendsinIndustrialMathProject
 ```
 
-### 2. Create a virtual environment (recommended)
+### 2. Create a virtual environment
 
 ```bash
 python3 -m venv venv
